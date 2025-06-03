@@ -14,6 +14,7 @@ export interface GameState {
     isGameOver: boolean;
     winner: string | null;
     roundNumber: number;
+    currentRound: number;
 }
 
 export interface Player {

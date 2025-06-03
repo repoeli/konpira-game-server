@@ -20,7 +20,8 @@ export class KonpiraGame {
             gamePhase: 'waiting',
             isGameOver: false,
             winner: null,
-            roundNumber: 1
+            roundNumber: 1,
+            currentRound: 1
         };
     }
 
@@ -30,6 +31,7 @@ export class KonpiraGame {
     public startGame(): GameState {
         this.state.gamePhase = 'action';
         this.state.roundNumber = 1;
+        this.state.currentRound = 1;
         this.state.boxOnTable = Math.random() > 0.5;
         this.state.currentPlayer = 0;
         this.state.isGameOver = false;
@@ -175,6 +177,7 @@ export class KonpiraGame {
         
         // Increment round number
         this.state.roundNumber++;
+        this.state.currentRound = this.state.roundNumber;
         
         // Reset player actions and guesses
         this.state.players.forEach(player => {

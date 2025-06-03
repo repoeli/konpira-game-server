@@ -35,19 +35,30 @@ export function setupWebSocketServer(server: any) {
 }
 
 function handleMessage(ws: WebSocket, data: ClientMessage) {
-    switch (data.type) {
-        case 'joinRoom':
-            joinRoom(ws, data.roomId, data.playerId);
-            break;
-        case 'playerAction':
-            processPlayerAction(ws, data);
-            break;
-        case 'playerGuess':
-            processPlayerGuess(ws, data);
-            break;
-        default:
-            console.error('Unknown message type:', (data as any).type);
-            sendErrorMessage(ws, 'Unknown message type');
+    try {
+        switch (data.type) {
+            case 'joinRoom':
+                joinRoom(ws, data.roomId, data.playerId);
+                break;
+            case 'playerAction':
+                processPlayerAction(ws, data);
+                break;
+            case 'playerGuess':
+                processPlayerGuess(ws, data);
+                break;
+            case 'giveUp':
+                processGiveUp(ws, data);
+                break;
+            case 'restartGame':
+                processRestartGame(ws, data);
+                break;
+            default:
+                console.error('Unknown message type:', (data as any).type);
+                sendErrorMessage(ws, 'Unknown message type');
+        }
+    } catch (error) {
+        console.error('Error handling message:', error);
+        sendErrorMessage(ws, 'Internal server error');
     }
 }
 
@@ -68,21 +79,34 @@ function joinRoom(ws: WebSocket, roomId: string, playerId: string) {
 }
 
 function processPlayerAction(ws: WebSocket, data: { roomId: string; playerId: string; action: PlayerAction }) {
-    const room = gameRooms.get(data.roomId);
-    if (!room) {
-        sendErrorMessage(ws, 'Room not found');
-        return;
-    }
+    try {
+        const room = gameRooms.get(data.roomId);
+        if (!room) {
+            sendErrorMessage(ws, 'Room not found');
+            return;
+        }
 
-    const playerId = clients.get(ws);
-    if (playerId !== data.playerId) {
-        sendErrorMessage(ws, 'Player ID mismatch');
-        return;
-    }
+        const playerId = clients.get(ws);
+        if (playerId !== data.playerId) {
+            sendErrorMessage(ws, 'Player ID mismatch');
+            return;
+        }
 
-    const result = room.processAction(data.playerId, data.action);
-    if (!result.success) {
-        sendErrorMessage(ws, result.message);
+        // Validate action parameter
+        if (!data.action || (data.action !== 'touchBox' && data.action !== 'touchTable')) {
+            sendErrorMessage(ws, 'Invalid action type');
+            return;
+        }
+
+        const result = room.processAction(data.playerId, data.action);
+        if (!result.success) {
+            // Send error but don't disconnect - let the game continue
+            console.log(`Action error for player ${data.playerId}: ${result.message}`);
+            sendErrorMessage(ws, result.message);
+        }
+    } catch (error) {
+        console.error('Error processing player action:', error);
+        sendErrorMessage(ws, 'Failed to process action - please try again');
     }
 }
 
@@ -103,6 +127,41 @@ function processPlayerGuess(ws: WebSocket, data: { roomId: string; playerId: str
     if (!result.success) {
         sendErrorMessage(ws, result.message);
     }
+}
+
+function processGiveUp(ws: WebSocket, data: { roomId: string; playerId: string }) {
+    const room = gameRooms.get(data.roomId);
+    if (!room) {
+        sendErrorMessage(ws, 'Room not found');
+        return;
+    }
+
+    const playerId = clients.get(ws);
+    if (playerId !== data.playerId) {
+        sendErrorMessage(ws, 'Player ID mismatch');
+        return;
+    }
+
+    // Player gives up - they lose
+    const opponent = room.players.find(p => p.id !== data.playerId);
+    room.endGame(`${data.playerId} gave up`, opponent?.id || null);
+}
+
+function processRestartGame(ws: WebSocket, data: { roomId: string; playerId: string }) {
+    const room = gameRooms.get(data.roomId);
+    if (!room) {
+        sendErrorMessage(ws, 'Room not found');
+        return;
+    }
+
+    const playerId = clients.get(ws);
+    if (playerId !== data.playerId) {
+        sendErrorMessage(ws, 'Player ID mismatch');
+        return;
+    }
+
+    // Reset the game for another round
+    room.resetGame();
 }
 
 function handleDisconnection(ws: WebSocket) {

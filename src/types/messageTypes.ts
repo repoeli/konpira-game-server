@@ -19,6 +19,18 @@ export interface PlayerGuessMessage {
     guess: 'touchBox' | 'touchTable';
 }
 
+export interface GiveUpMessage {
+    type: 'giveUp';
+    roomId: string;
+    playerId: string;
+}
+
+export interface RestartGameMessage {
+    type: 'restartGame';
+    roomId: string;
+    playerId: string;
+}
+
 export interface GameStateMessage {
     type: 'gameState';
     state: any; // Will be GameState from gameTypes
@@ -47,5 +59,5 @@ export interface TimerUpdateMessage {
     phase: string;
 }
 
-export type ClientMessage = JoinRoomMessage | PlayerActionMessage | PlayerGuessMessage;
+export type ClientMessage = JoinRoomMessage | PlayerActionMessage | PlayerGuessMessage | GiveUpMessage | RestartGameMessage;
 export type ServerMessage = GameStateMessage | ErrorMessage | RoomJoinedMessage | GameStartMessage | TimerUpdateMessage;

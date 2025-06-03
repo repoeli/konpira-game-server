@@ -10,6 +10,11 @@
     <div class="container">
         <h1>Konpira Game</h1>
         
+        <div id="notification" class="notification hidden">
+            <span id="notificationText"></span>
+            <button id="closeNotification" class="close-btn">&times;</button>
+        </div>
+        
         <div id="join-game">
             <h2>Join Game</h2>
             <div class="form-group">
@@ -30,6 +35,13 @@
                 <h3>Players: <span id="playerCount">0/2</span></h3>
                 <h3>Status: <span id="gameStatus">Waiting for players</span></h3>
                 <div id="timer" class="timer">Time: <span id="timeLeft">-</span></div>
+                
+                <div class="round-progress">
+                    <h4>Round <span id="currentRound">1</span> of 10</h4>
+                    <div class="progress-bar">
+                        <div id="progressFill" class="progress-fill"></div>
+                    </div>
+                </div>
             </div>
 
             <div class="game-board">
@@ -54,13 +66,17 @@
                     <button id="guessBoxBtn" class="guess-btn">Opponent Touched Box</button>
                     <button id="guessTableBtn" class="guess-btn">Opponent Touched Table</button>
                 </div>
+
+                <div class="game-controls">
+                    <button id="giveUpBtn" class="give-up-btn">Give Up</button>
+                </div>
             </div>
 
             <div class="player-status">
                 <div class="player player-you">
                     <h3>You: <span id="yourName">-</span></h3>
                     <div class="drink-meter">
-                        <div id="yourDrinkLevel" class="drink-level" style="width: 0%"></div>
+                        <div id="yourDrinkLevel" class="drink-level"></div>
                     </div>
                     <p>Last action: <span id="yourAction">-</span></p>
                 </div>
@@ -68,7 +84,7 @@
                 <div class="player player-opponent">
                     <h3>Opponent: <span id="opponentName">-</span></h3>
                     <div class="drink-meter">
-                        <div id="opponentDrinkLevel" class="drink-level" style="width: 0%"></div>
+                        <div id="opponentDrinkLevel" class="drink-level"></div>
                     </div>
                     <p>Last action: <span id="opponentAction">-</span></p>
                 </div>
@@ -78,7 +94,10 @@
         <div id="game-over" class="hidden">
             <h2>Game Over!</h2>
             <h3>Winner: <span id="winner">-</span></h3>
-            <button id="newGameBtn">Start New Game</button>
+            <div class="game-over-buttons">
+                <button id="restartGameBtn">Restart Game</button>
+                <button id="newGameBtn">New Room</button>
+            </div>
         </div>
     </div>
 
