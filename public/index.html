@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Konpira Game</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Konpira Game</h1>
+        
+        <div id="join-game">
+            <h2>Join Game</h2>
+            <div class="form-group">
+                <label for="roomId">Room ID:</label>
+                <input type="text" id="roomId" placeholder="Enter room ID or create new">
+            </div>
+            <div class="form-group">
+                <label for="playerId">Your Name:</label>
+                <input type="text" id="playerId" placeholder="Enter your name">
+            </div>
+            <button id="joinBtn">Join Game</button>
+            <p id="connectionStatus">Not connected</p>
+        </div>
+
+        <div id="game-area" class="hidden">
+            <div class="game-status">
+                <h2>Room: <span id="currentRoom">-</span></h2>
+                <h3>Players: <span id="playerCount">0/2</span></h3>
+                <h3>Status: <span id="gameStatus">Waiting for players</span></h3>
+                <div id="timer" class="timer">Time: <span id="timeLeft">-</span></div>
+            </div>
+
+            <div class="game-board">
+                <div class="game-info">
+                    <p>Box is <span id="boxStatus">on the table</span></p>
+                    <p>Current turn: <span id="currentTurn">-</span></p>
+                </div>
+                
+                <div class="action-area">
+                    <div id="table" class="table">
+                        <div id="box" class="box">Box</div>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button id="touchBoxBtn" class="action-btn">Touch Box (Flat Hand)</button>
+                    <button id="touchTableBtn" class="action-btn">Touch Table (Fist)</button>
+                </div>
+
+                <div class="guess-buttons">
+                    <h3>Guess Opponent's Action:</h3>
+                    <button id="guessBoxBtn" class="guess-btn">Opponent Touched Box</button>
+                    <button id="guessTableBtn" class="guess-btn">Opponent Touched Table</button>
+                </div>
+            </div>
+
+            <div class="player-status">
+                <div class="player player-you">
+                    <h3>You: <span id="yourName">-</span></h3>
+                    <div class="drink-meter">
+                        <div id="yourDrinkLevel" class="drink-level" style="width: 0%"></div>
+                    </div>
+                    <p>Last action: <span id="yourAction">-</span></p>
+                </div>
+                
+                <div class="player player-opponent">
+                    <h3>Opponent: <span id="opponentName">-</span></h3>
+                    <div class="drink-meter">
+                        <div id="opponentDrinkLevel" class="drink-level" style="width: 0%"></div>
+                    </div>
+                    <p>Last action: <span id="opponentAction">-</span></p>
+                </div>
+            </div>
+        </div>
+
+        <div id="game-over" class="hidden">
+            <h2>Game Over!</h2>
+            <h3>Winner: <span id="winner">-</span></h3>
+            <button id="newGameBtn">Start New Game</button>
+        </div>
+    </div>
+
+    <script src="client.js"></script>
+</body>
+</html>

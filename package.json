@@ -1,0 +1,26 @@
+{
+  "name": "konpira-game-server",
+  "version": "1.0.0",
+  "description": "Welcome to the Konpira Game Server! This project implements the online version of the traditional Japanese game Konpira, allowing two players to compete in real-time over the internet.",
+  "main": "dist/app.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/app.js",
+    "dev": "ts-node src/app.ts",
+    "watch": "tsc --watch",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@types/express": "^5.0.2",
+    "@types/node": "^22.15.29",
+    "@types/ws": "^8.18.1",
+    "express": "^5.1.0",
+    "socket.io": "^4.8.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.8.3",
+    "ws": "^8.18.2"
+  }
+}
