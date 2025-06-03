@@ -61,11 +61,39 @@ export class GameRoom {
     public removePlayer(ws: WebSocket): void {
         const playerIndex = this.players.findIndex(p => p.ws === ws);
         if (playerIndex !== -1) {
-            this.players.splice(playerIndex, 1);
-            this.gameState.players.splice(playerIndex, 1);
+            const removedPlayer = this.players[playerIndex];
+            console.log(`Removing player ${removedPlayer.id} from room ${this.roomId}`);
             
+            this.players.splice(playerIndex, 1);
+            
+            // Also remove from game state
+            const gamePlayerIndex = this.gameState.players.findIndex(p => p.id === removedPlayer.id);
+            if (gamePlayerIndex !== -1) {
+                this.gameState.players.splice(gamePlayerIndex, 1);
+            }
+            
+            // Clear any running timers
+            if (this.guessTimer) {
+                clearTimeout(this.guessTimer);
+                this.guessTimer = null;
+            }
+            if (this.phaseUpdateInterval) {
+                clearInterval(this.phaseUpdateInterval);
+                this.phaseUpdateInterval = null;
+            }
+            
+            // If game was in progress and we don't have enough players, end it
             if (this.gameState.gamePhase !== 'waiting' && this.players.length < 2) {
-                this.endGame('Game ended - player disconnected');
+                const remainingPlayer = this.players[0];
+                if (remainingPlayer) {
+                    this.endGame(`${removedPlayer.id} disconnected`, remainingPlayer.id);
+                } else {
+                    this.endGame('All players disconnected');
+                }
+            } else if (this.players.length === 0) {
+                // Reset game state if no players left
+                this.gameState.gamePhase = 'waiting';
+                this.gameState.isGameOver = false;
             }
         }
     }

@@ -111,21 +111,34 @@ function processPlayerAction(ws: WebSocket, data: { roomId: string; playerId: st
 }
 
 function processPlayerGuess(ws: WebSocket, data: { roomId: string; playerId: string; guess: PlayerAction }) {
-    const room = gameRooms.get(data.roomId);
-    if (!room) {
-        sendErrorMessage(ws, 'Room not found');
-        return;
-    }
+    try {
+        const room = gameRooms.get(data.roomId);
+        if (!room) {
+            sendErrorMessage(ws, 'Room not found');
+            return;
+        }
 
-    const playerId = clients.get(ws);
-    if (playerId !== data.playerId) {
-        sendErrorMessage(ws, 'Player ID mismatch');
-        return;
-    }
+        const playerId = clients.get(ws);
+        if (playerId !== data.playerId) {
+            sendErrorMessage(ws, 'Player ID mismatch');
+            return;
+        }
 
-    const result = room.processGuess(data.playerId, data.guess);
-    if (!result.success) {
-        sendErrorMessage(ws, result.message);
+        // Validate guess parameter
+        if (!data.guess || (data.guess !== 'touchBox' && data.guess !== 'touchTable')) {
+            sendErrorMessage(ws, 'Invalid guess type');
+            return;
+        }
+
+        const result = room.processGuess(data.playerId, data.guess);
+        if (!result.success) {
+            // Send error but don't disconnect - let the game continue
+            console.log(`Guess error for player ${data.playerId}: ${result.message}`);
+            sendErrorMessage(ws, result.message);
+        }
+    } catch (error) {
+        console.error('Error processing player guess:', error);
+        sendErrorMessage(ws, 'Failed to process guess - please try again');
     }
 }
 
@@ -148,20 +161,43 @@ function processGiveUp(ws: WebSocket, data: { roomId: string; playerId: string }
 }
 
 function processRestartGame(ws: WebSocket, data: { roomId: string; playerId: string }) {
-    const room = gameRooms.get(data.roomId);
-    if (!room) {
-        sendErrorMessage(ws, 'Room not found');
-        return;
-    }
+    try {
+        const room = gameRooms.get(data.roomId);
+        if (!room) {
+            sendErrorMessage(ws, 'Room not found');
+            return;
+        }
 
-    const playerId = clients.get(ws);
-    if (playerId !== data.playerId) {
-        sendErrorMessage(ws, 'Player ID mismatch');
-        return;
-    }
+        const playerId = clients.get(ws);
+        if (playerId !== data.playerId) {
+            sendErrorMessage(ws, 'Player ID mismatch');
+            return;
+        }
 
-    // Reset the game for another round
-    room.resetGame();
+        // Ensure room has the required number of players
+        if (room.players.length !== 2) {
+            sendErrorMessage(ws, 'Need 2 players to restart game');
+            return;
+        }
+
+        console.log(`Player ${data.playerId} restarting game in room ${data.roomId}`);
+        
+        // Reset the game for another round
+        room.resetGame();
+        
+        // Send success notification
+        room.players.forEach(player => {
+            if (player.ws.readyState === WebSocket.OPEN) {
+                player.ws.send(JSON.stringify({
+                    type: 'gameState',
+                    state: room.getGameState()
+                }));
+            }
+        });
+    } catch (error) {
+        console.error('Error restarting game:', error);
+        sendErrorMessage(ws, 'Failed to restart game - please try again');
+    }
 }
 
 function handleDisconnection(ws: WebSocket) {

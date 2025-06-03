@@ -291,38 +291,72 @@ function updateTimer(timeLeft, phase) {
 }
 
 function sendPlayerAction(action) {
-    sendMessage({
-        type: 'playerAction',
-        roomId: roomId,
-        playerId: playerId,
-        action: action,
-        timestamp: Date.now()
-    });
-    
-    // Visual feedback for action
-    const actionText = action === 'touchBox' ? 'Touched Box' : 'Touched Table';
-    showNotification(`You ${actionText.toLowerCase()}!`, 'info');
-    
-    // Disable action buttons after selection
-    touchBoxBtn.disabled = true;
-    touchTableBtn.disabled = true;
+    // Prevent sending if not in correct state
+    if (!isMyTurn || gameStatusSpan.textContent.includes('Guessing') || gameStatusSpan.textContent.includes('Game Over')) {
+        showNotification('Cannot perform action right now', 'warning');
+        return;
+    }
+
+    try {
+        sendMessage({
+            type: 'playerAction',
+            roomId: roomId,
+            playerId: playerId,
+            action: action,
+            timestamp: Date.now()
+        });
+        
+        // Visual feedback for action
+        const actionText = action === 'touchBox' ? 'Touched Box' : 'Touched Table';
+        showNotification(`You ${actionText.toLowerCase()}!`, 'info');
+        
+        // Disable action buttons after selection
+        touchBoxBtn.disabled = true;
+        touchTableBtn.disabled = true;
+    } catch (error) {
+        console.error('Error sending action:', error);
+        showNotification('Failed to send action - please try again', 'error');
+        
+        // Re-enable buttons on error
+        if (isMyTurn) {
+            touchBoxBtn.disabled = false;
+            touchTableBtn.disabled = false;
+        }
+    }
 }
 
 function sendPlayerGuess(guess) {
-    sendMessage({
-        type: 'playerGuess',
-        roomId: roomId,
-        playerId: playerId,
-        guess: guess
-    });
-    
-    // Visual feedback for guess
-    const guessText = guess === 'touchBox' ? 'Box' : 'Table';
-    showNotification(`You guessed: Opponent touched ${guessText}`, 'info');
-    
-    // Disable guess buttons after selection
-    guessBoxBtn.disabled = true;
-    guessTableBtn.disabled = true;
+    // Prevent sending if not in correct state
+    if (isMyTurn || !gameStatusSpan.textContent.includes('Guessing') || gameStatusSpan.textContent.includes('Game Over')) {
+        showNotification('Cannot guess right now', 'warning');
+        return;
+    }
+
+    try {
+        sendMessage({
+            type: 'playerGuess',
+            roomId: roomId,
+            playerId: playerId,
+            guess: guess
+        });
+        
+        // Visual feedback for guess
+        const guessText = guess === 'touchBox' ? 'Box' : 'Table';
+        showNotification(`You guessed: Opponent touched ${guessText}`, 'info');
+        
+        // Disable guess buttons after selection
+        guessBoxBtn.disabled = true;
+        guessTableBtn.disabled = true;
+    } catch (error) {
+        console.error('Error sending guess:', error);
+        showNotification('Failed to send guess - please try again', 'error');
+        
+        // Re-enable buttons on error
+        if (!isMyTurn && gameStatusSpan.textContent.includes('Guessing')) {
+            guessBoxBtn.disabled = false;
+            guessTableBtn.disabled = false;
+        }
+    }
 }
 
 function giveUpGame() {
@@ -371,24 +405,33 @@ function resetGame() {
 }
 
 function restartGame() {
-    sendMessage({
-        type: 'restartGame',
-        roomId: roomId,
-        playerId: playerId
-    });
-    
-    // Reset local UI immediately
-    yourDrinkLevel.style.width = '0%';
-    opponentDrinkLevel.style.width = '0%';
-    yourActionSpan.textContent = '-';
-    opponentActionSpan.textContent = '-';
-    boxElement.classList.remove('off-table');
-    currentRoundSpan.textContent = '1';
-    progressFill.style.width = '10%';
-    
-    // Hide game over screen and show game area
-    gameOverDiv.classList.add('hidden');
-    gameAreaDiv.classList.remove('hidden');
+    try {
+        sendMessage({
+            type: 'restartGame',
+            roomId: roomId,
+            playerId: playerId
+        });
+        
+        // Reset local UI immediately for responsive feedback
+        yourDrinkLevel.style.width = '0%';
+        opponentDrinkLevel.style.width = '0%';
+        yourActionSpan.textContent = '-';
+        opponentActionSpan.textContent = '-';
+        boxElement.classList.remove('off-table');
+        currentRoundSpan.textContent = '1';
+        progressFill.style.width = '10%';
+        timeLeftSpan.textContent = 'No timer';
+        timeLeftSpan.style.color = '#2ecc71';
+        
+        // Hide game over screen and show game area
+        gameOverDiv.classList.add('hidden');
+        gameAreaDiv.classList.remove('hidden');
+        
+        showNotification('Game restarted! New round beginning...', 'success');
+    } catch (error) {
+        console.error('Error restarting game:', error);
+        showNotification('Failed to restart game - please try again', 'error');
+    }
 }
 
 function updateRoundProgress(round) {
@@ -408,7 +451,27 @@ function hideGameArea() {
 }
 
 function showError(message) {
-    showNotification(message, 'error');
+    console.error('Game error:', message);
+    
+    // Handle specific error types
+    if (message.includes('Invalid action') || message.includes('drink penalty')) {
+        showNotification(message, 'warning');
+    } else if (message.includes('Not your turn') || message.includes('already')) {
+        showNotification(message, 'info');
+    } else if (message.includes('Room not found') || message.includes('Connection')) {
+        showNotification(message, 'error');
+        
+        // Try to reconnect if room issues
+        if (message.includes('Room not found') && reconnectAttempts < maxReconnectAttempts) {
+            setTimeout(() => {
+                if (roomId && playerId) {
+                    joinGame();
+                }
+            }, 3000);
+        }
+    } else {
+        showNotification(message, 'error');
+    }
 }
 
 function showNotification(message, type = 'info') {
