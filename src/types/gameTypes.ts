@@ -8,13 +8,20 @@ export interface GameState {
         drinkLevel: number;
         lastAction?: PlayerAction;
         guess?: PlayerAction;
+        postGameDecision?: 'continue' | 'end' | 'pending';
     }[];
     roundTimer: number;
-    gamePhase: 'waiting' | 'action' | 'guessing' | 'validation' | 'gameOver';
+    gamePhase: 'waiting' | 'action' | 'guessing' | 'validation' | 'gameOver' | 'postGame';
     isGameOver: boolean;
     winner: string | null;
     roundNumber: number;
     currentRound: number;
+    postGameState?: {
+        winnerId: string | null;
+        loserId: string | null;
+        reason: string;
+        waitingForDecisions: boolean;
+    };
 }
 
 export interface Player {

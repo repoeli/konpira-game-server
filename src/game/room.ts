@@ -396,9 +396,25 @@ export class GameRoom {
     }
 
     public endGame(reason: string, winnerId: string | null = null): void {
-        this.gameState.gamePhase = 'gameOver';
+        // Don't actually end the game, transition to post-game state
+        this.gameState.gamePhase = 'postGame';
         this.gameState.isGameOver = true;
         this.gameState.winner = winnerId;
+        
+        // Set up post-game state
+        const loserId = winnerId ? this.gameState.players.find(p => p.id !== winnerId)?.id || null : null;
+        
+        this.gameState.postGameState = {
+            winnerId: winnerId,
+            loserId: loserId,
+            reason: reason,
+            waitingForDecisions: true
+        };
+
+        // Reset player decisions
+        this.gameState.players.forEach(player => {
+            player.postGameDecision = 'pending';
+        });
         
         if (this.guessTimer) {
             clearTimeout(this.guessTimer);
@@ -409,8 +425,187 @@ export class GameRoom {
             this.phaseUpdateInterval = null;
         }
 
+        // Broadcast post-game state
+        this.broadcastPostGameState();
+        
+        console.log(`Game ${this.roomId} entered post-game state: ${reason}`);
+    }
+
+    public processPostGameDecision(playerId: string, decision: 'continue' | 'end'): GameResult {
+        if (this.gameState.gamePhase !== 'postGame') {
+            return { success: false, message: 'Not in post-game phase' };
+        }
+
+        const player = this.gameState.players.find(p => p.id === playerId);
+        if (!player) {
+            return { success: false, message: 'Player not found' };
+        }
+
+        // Record the player's decision
+        player.postGameDecision = decision;
+
+        console.log(`Player ${playerId} decided to ${decision}`);
+
+        // Check if both players have made decisions
+        const allDecisionsMade = this.gameState.players.every(p => p.postGameDecision !== 'pending');
+
+        if (allDecisionsMade) {
+            this.resolvePostGameDecisions();
+        } else {
+            // Update waiting state
+            this.broadcastPostGameState();
+        }
+
+        return { success: true, message: 'Decision recorded', gameState: this.gameState };
+    }
+
+    public kickPlayer(winnerId: string, targetPlayerId: string): GameResult {
+        if (this.gameState.gamePhase !== 'postGame') {
+            return { success: false, message: 'Can only kick players in post-game phase' };
+        }
+
+        if (!this.gameState.postGameState || this.gameState.postGameState.winnerId !== winnerId) {
+            return { success: false, message: 'Only the winner can kick players' };
+        }
+
+        if (targetPlayerId === winnerId) {
+            return { success: false, message: 'Cannot kick yourself' };
+        }
+
+        const targetPlayer = this.players.find(p => p.id === targetPlayerId);
+        if (!targetPlayer) {
+            return { success: false, message: 'Target player not found' };
+        }
+
+        // Remove the kicked player
+        this.removePlayerById(targetPlayerId);
+
+        // Notify remaining players
+        this.broadcastMessage({
+            type: 'error',
+            message: `${targetPlayerId} was kicked from the room by the winner`
+        });
+
+        // Reset game state for remaining player
+        this.gameState.gamePhase = 'waiting';
+        this.gameState.isGameOver = false;
+        this.gameState.winner = null;
+        this.gameState.postGameState = undefined;
+
         this.broadcastGameState();
-        console.log(`Game ${this.roomId} ended: ${reason}`);
+
+        console.log(`Player ${targetPlayerId} was kicked by winner ${winnerId} in room ${this.roomId}`);
+
+        return { success: true, message: 'Player kicked', gameState: this.gameState };
+    }
+
+    private resolvePostGameDecisions(): void {
+        const decisions = this.gameState.players.map(p => p.postGameDecision);
+        
+        // If any player wants to end, end the session
+        if (decisions.includes('end')) {
+            this.endSession('One or more players chose to end the session');
+            return;
+        }
+
+        // If both players want to continue, start a new game
+        if (decisions.every(d => d === 'continue')) {
+            this.startNewGameAfterPostGame();
+            return;
+        }
+
+        // This shouldn't happen, but handle it gracefully
+        this.endSession('Unable to resolve post-game decisions');
+    }
+
+    private startNewGameAfterPostGame(): void {
+        console.log(`Starting new game in room ${this.roomId} after post-game decisions`);
+
+        // Reset game state for new game
+        this.gameState = {
+            currentPlayer: 0,
+            boxOnTable: Math.random() > 0.5,
+            players: this.gameState.players.map(p => ({
+                id: p.id,
+                drinkLevel: 0,
+                lastAction: undefined,
+                guess: undefined,
+                postGameDecision: undefined
+            })),
+            roundTimer: 0,
+            gamePhase: 'action',
+            isGameOver: false,
+            winner: null,
+            roundNumber: 1,
+            currentRound: 1,
+            postGameState: undefined
+        };
+
+        // Broadcast the new game start
+        this.broadcastMessage({
+            type: 'gameStart',
+            roomId: this.roomId
+        });
+
+        // Start the action phase
+        setTimeout(() => {
+            this.startActionPhase();
+        }, 1000);
+    }
+
+    private endSession(reason: string): void {
+        console.log(`Ending session in room ${this.roomId}: ${reason}`);
+
+        // Set to final game over state
+        this.gameState.gamePhase = 'gameOver';
+        this.gameState.isGameOver = true;
+        this.gameState.postGameState = undefined;
+
+        // Reset player decisions
+        this.gameState.players.forEach(player => {
+            player.postGameDecision = undefined;
+        });
+
+        this.broadcastGameState();
+        this.broadcastMessage({
+            type: 'error',
+            message: reason
+        });
+    }
+
+    private removePlayerById(playerId: string): void {
+        // Remove from players array
+        const playerIndex = this.players.findIndex(p => p.id === playerId);
+        if (playerIndex !== -1) {
+            this.players.splice(playerIndex, 1);
+        }
+
+        // Remove from game state
+        const gamePlayerIndex = this.gameState.players.findIndex(p => p.id === playerId);
+        if (gamePlayerIndex !== -1) {
+            this.gameState.players.splice(gamePlayerIndex, 1);
+        }
+    }
+
+    private broadcastPostGameState(): void {
+        if (!this.gameState.postGameState) return;
+
+        const playerDecisions: { [playerId: string]: 'continue' | 'end' | 'pending' } = {};
+        this.gameState.players.forEach(player => {
+            playerDecisions[player.id] = player.postGameDecision || 'pending';
+        });
+
+        this.broadcastMessage({
+            type: 'postGameState',
+            state: {
+                winnerId: this.gameState.postGameState.winnerId,
+                loserId: this.gameState.postGameState.loserId,
+                reason: this.gameState.postGameState.reason,
+                canKick: this.gameState.postGameState.winnerId !== null,
+                waitingForDecisions: this.gameState.postGameState.waitingForDecisions,
+                playerDecisions: playerDecisions
+            }
+        });
     }
 
     public getGameState(): GameState {

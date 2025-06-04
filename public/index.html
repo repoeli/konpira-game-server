@@ -3,101 +3,171 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Konpira Game</title>
+    <title>Konpira | Modern Strategy Game</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
-        <h1>Konpira Game</h1>
-        
-        <div id="notification" class="notification hidden">
+    <!-- Main App Container -->
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo">
+                <span class="logo-icon">🎲</span>
+                <span>Konpira</span>
+            </div>
+            <div class="tagline">Strategic Mind Game</div>
+            <div id="connectionStatus" class="status-badge disconnected">Disconnected</div>
+        </header>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Join Game Screen -->
+            <section id="join-game" class="screen join-screen">
+                <div class="setup-container">
+                    <h1 class="setup-title">Ready to Play Konpira?</h1>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Your Name</label>
+                        <input type="text" id="playerName" class="form-input" placeholder="Enter your name" maxlength="20">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">Room Code (optional)</label>
+                        <input type="text" id="roomCode" class="form-input" placeholder="Leave empty to create new room">
+                    </div>
+                    
+                    <button id="joinGameBtn" class="btn btn-primary btn-lg w-full">Join Game</button>
+                </div>
+            </section>
+
+            <!-- Game Screen -->
+            <section id="game-area" class="screen game-screen hidden">
+                <!-- Game Header -->
+                <div class="game-header">
+                    <div class="room-info">
+                        <span class="room-code">Room <span id="currentRoom">-</span></span>
+                        <span class="player-count">Players <span id="playerCount">0/2</span></span>
+                        <span class="round-info">Round <span id="currentRound">1</span>/10</span>
+                        <div class="round-progress">
+                            <div id="progressFill" class="round-progress-fill"></div>
+                        </div>
+                    </div>
+                    <div class="timer" id="timeLeft">-</div>
+                </div>
+
+                <!-- Players Section -->
+                <div class="players-section">
+                    <h3 class="section-title">👥 Players</h3>
+                    <div class="players-grid">
+                        <div class="player-row current-player">
+                            <div class="player-info">
+                                <span class="player-name" id="yourName">You</span>
+                                <span class="player-status" id="currentTurn">Your turn</span>
+                                <span class="player-action">Action: <span id="yourAction">-</span></span>
+                            </div>
+                            <div class="drink-meter">
+                                <span class="drink-count" id="yourDrinkCount">0</span>
+                                <div class="drink-progress">
+                                    <div id="yourDrinkLevel" class="drink-progress-fill"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="player-row">
+                            <div class="player-info">
+                                <span class="player-name" id="opponentName">Opponent</span>
+                                <span class="player-status">Connected</span>
+                                <span class="player-action">Action: <span id="opponentAction">-</span></span>
+                            </div>
+                            <div class="drink-meter">
+                                <span class="drink-count" id="opponentDrinkCount">0</span>
+                                <div class="drink-progress">
+                                    <div id="opponentDrinkLevel" class="drink-progress-fill"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Game Board -->
+                <div class="game-board">
+                    <div class="game-status" id="gameStatus">Waiting for game to start...</div>
+                    <div class="current-card">
+                        <div id="box">📦</div>
+                        <div class="game-message">
+                            Box is <span id="boxStatus">on the table</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Controls -->
+                <div class="controls-section">
+                    <h3 class="section-title">🎮 Actions</h3>
+                    <div class="controls-grid">
+                        <div class="control-group">
+                            <div class="control-label">Actions</div>
+                            <div class="button-group">
+                                <button id="touchBoxBtn" class="btn btn-primary">
+                                    Touch Box
+                                </button>
+                                <button id="touchTableBtn" class="btn btn-secondary">
+                                    Touch Table
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="control-group">
+                            <div class="control-label">Guesses</div>
+                            <div class="button-group">
+                                <button id="guessBoxBtn" class="btn btn-warning">
+                                    Guess Box
+                                </button>
+                                <button id="guessTableBtn" class="btn btn-success">
+                                    Guess Table
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="control-group">
+                            <div class="control-label">Options</div>
+                            <button id="giveUpBtn" class="btn btn-error btn-sm">Give Up</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Game Over Screen -->
+            <section id="game-over" class="screen game-over-screen hidden">
+                <div class="game-over">
+                    <div class="winner-announcement">
+                        🏆 <span id="winner">Player</span> Wins!
+                    </div>
+                    
+                    <div class="final-scores">
+                        <div class="score-item winner">
+                            <span id="winnerName">Winner</span>
+                            <span id="winnerScore">0 drinks</span>
+                        </div>
+                        <div class="score-item">
+                            <span id="loserName">Player</span>
+                            <span id="loserScore">0 drinks</span>
+                        </div>
+                    </div>
+                    
+                    <div class="button-group">
+                        <button id="restartGameBtn" class="btn btn-primary btn-lg">Play Again</button>
+                        <button id="newGameBtn" class="btn btn-secondary">New Room</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Notification System -->
+    <div id="notification" class="notification hidden">
+        <div class="notification-content">
             <span id="notificationText"></span>
-            <button id="closeNotification" class="close-btn">&times;</button>
-        </div>
-        
-        <div id="join-game">
-            <h2>Join Game</h2>
-            <div class="form-group">
-                <label for="roomId">Room ID:</label>
-                <input type="text" id="roomId" placeholder="Enter room ID or create new">
-            </div>
-            <div class="form-group">
-                <label for="playerId">Your Name:</label>
-                <input type="text" id="playerId" placeholder="Enter your name">
-            </div>
-            <button id="joinBtn">Join Game</button>
-            <p id="connectionStatus">Not connected</p>
-        </div>
-
-        <div id="game-area" class="hidden">
-            <div class="game-status">
-                <h2>Room: <span id="currentRoom">-</span></h2>
-                <h3>Players: <span id="playerCount">0/2</span></h3>
-                <h3>Status: <span id="gameStatus">Waiting for players</span></h3>
-                <div id="timer" class="timer">Time: <span id="timeLeft">-</span></div>
-                
-                <div class="round-progress">
-                    <h4>Round <span id="currentRound">1</span> of 10</h4>
-                    <div class="progress-bar">
-                        <div id="progressFill" class="progress-fill"></div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="game-board">
-                <div class="game-info">
-                    <p>Box is <span id="boxStatus">on the table</span></p>
-                    <p>Current turn: <span id="currentTurn">-</span></p>
-                </div>
-                
-                <div class="action-area">
-                    <div id="table" class="table">
-                        <div id="box" class="box">Box</div>
-                    </div>
-                </div>
-
-                <div class="action-buttons">
-                    <button id="touchBoxBtn" class="action-btn">Touch Box (Flat Hand)</button>
-                    <button id="touchTableBtn" class="action-btn">Touch Table (Fist)</button>
-                </div>
-
-                <div class="guess-buttons">
-                    <h3>Guess Opponent's Action:</h3>
-                    <button id="guessBoxBtn" class="guess-btn">Opponent Touched Box</button>
-                    <button id="guessTableBtn" class="guess-btn">Opponent Touched Table</button>
-                </div>
-
-                <div class="game-controls">
-                    <button id="giveUpBtn" class="give-up-btn">Give Up</button>
-                </div>
-            </div>
-
-            <div class="player-status">
-                <div class="player player-you">
-                    <h3>You: <span id="yourName">-</span></h3>
-                    <div class="drink-meter">
-                        <div id="yourDrinkLevel" class="drink-level"></div>
-                    </div>
-                    <p>Last action: <span id="yourAction">-</span></p>
-                </div>
-                
-                <div class="player player-opponent">
-                    <h3>Opponent: <span id="opponentName">-</span></h3>
-                    <div class="drink-meter">
-                        <div id="opponentDrinkLevel" class="drink-level"></div>
-                    </div>
-                    <p>Last action: <span id="opponentAction">-</span></p>
-                </div>
-            </div>
-        </div>
-
-        <div id="game-over" class="hidden">
-            <h2>Game Over!</h2>
-            <h3>Winner: <span id="winner">-</span></h3>
-            <div class="game-over-buttons">
-                <button id="restartGameBtn">Restart Game</button>
-                <button id="newGameBtn">New Room</button>
-            </div>
+            <button id="closeNotificationBtn" class="notification-close" aria-label="Close notification">×</button>
         </div>
     </div>
 

@@ -59,5 +59,31 @@ export interface TimerUpdateMessage {
     phase: string;
 }
 
-export type ClientMessage = JoinRoomMessage | PlayerActionMessage | PlayerGuessMessage | GiveUpMessage | RestartGameMessage;
-export type ServerMessage = GameStateMessage | ErrorMessage | RoomJoinedMessage | GameStartMessage | TimerUpdateMessage;
+export interface PostGameDecisionMessage {
+    type: 'postGameDecision';
+    roomId: string;
+    playerId: string;
+    decision: 'continue' | 'end';
+}
+
+export interface KickPlayerMessage {
+    type: 'kickPlayer';
+    roomId: string;
+    winnerId: string;
+    targetPlayerId: string;
+}
+
+export interface PostGameStateMessage {
+    type: 'postGameState';
+    state: {
+        winnerId: string | null;
+        loserId: string | null;
+        reason: string;
+        canKick: boolean;
+        waitingForDecisions: boolean;
+        playerDecisions: { [playerId: string]: 'continue' | 'end' | 'pending' };
+    };
+}
+
+export type ClientMessage = JoinRoomMessage | PlayerActionMessage | PlayerGuessMessage | GiveUpMessage | RestartGameMessage | PostGameDecisionMessage | KickPlayerMessage;
+export type ServerMessage = GameStateMessage | ErrorMessage | RoomJoinedMessage | GameStartMessage | TimerUpdateMessage | PostGameStateMessage;

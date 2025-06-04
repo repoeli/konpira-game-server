@@ -52,6 +52,12 @@ function handleMessage(ws: WebSocket, data: ClientMessage) {
             case 'restartGame':
                 processRestartGame(ws, data);
                 break;
+            case 'postGameDecision':
+                processPostGameDecision(ws, data);
+                break;
+            case 'kickPlayer':
+                processKickPlayer(ws, data);
+                break;
             default:
                 console.error('Unknown message type:', (data as any).type);
                 sendErrorMessage(ws, 'Unknown message type');
@@ -213,6 +219,72 @@ function handleDisconnection(ws: WebSocket) {
         });
         clients.delete(ws);
         console.log(`Player ${playerId} disconnected`);
+    }
+}
+
+function processPostGameDecision(ws: WebSocket, data: { roomId: string; playerId: string; decision: 'end' | 'continue' }) {
+    try {
+        const room = gameRooms.get(data.roomId);
+        if (!room) {
+            sendErrorMessage(ws, 'Room not found');
+            return;
+        }
+
+        const playerId = clients.get(ws);
+        if (playerId !== data.playerId) {
+            sendErrorMessage(ws, 'Player ID mismatch');
+            return;
+        }
+
+        // Validate decision
+        if (data.decision !== 'end' && data.decision !== 'continue') {
+            sendErrorMessage(ws, 'Invalid decision - must be "end" or "continue"');
+            return;
+        }
+
+        console.log(`Player ${data.playerId} chose to ${data.decision} in room ${data.roomId}`);
+        
+        // Process the decision in the game room
+        const result = room.processPostGameDecision(data.playerId, data.decision);
+        if (!result.success) {
+            sendErrorMessage(ws, result.message);
+        }
+    } catch (error) {
+        console.error('Error processing post-game decision:', error);
+        sendErrorMessage(ws, 'Failed to process decision - please try again');
+    }
+}
+
+function processKickPlayer(ws: WebSocket, data: { roomId: string; winnerId: string; targetPlayerId: string }) {
+    try {
+        const room = gameRooms.get(data.roomId);
+        if (!room) {
+            sendErrorMessage(ws, 'Room not found');
+            return;
+        }
+
+        const playerId = clients.get(ws);
+        if (playerId !== data.winnerId) {
+            sendErrorMessage(ws, 'Player ID mismatch');
+            return;
+        }
+
+        // Validate that target player exists
+        if (!data.targetPlayerId) {
+            sendErrorMessage(ws, 'Target player ID is required');
+            return;
+        }
+
+        console.log(`Player ${data.winnerId} attempting to kick ${data.targetPlayerId} in room ${data.roomId}`);
+        
+        // Process the kick request in the game room
+        const result = room.kickPlayer(data.winnerId, data.targetPlayerId);
+        if (!result.success) {
+            sendErrorMessage(ws, result.message);
+        }
+    } catch (error) {
+        console.error('Error processing kick player:', error);
+        sendErrorMessage(ws, 'Failed to kick player - please try again');
     }
 }
 
